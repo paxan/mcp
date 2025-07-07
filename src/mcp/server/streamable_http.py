@@ -355,6 +355,9 @@ class StreamableHTTPServerTransport:
                 await response(scope, receive, send)
                 return
 
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("POST-ed body: %r", body.decode("utf-8"))
+
             # Check if this is an initialization request
             is_initialization_request = isinstance(message.root, JSONRPCRequest) and message.root.method == "initialize"
 
