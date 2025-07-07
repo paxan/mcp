@@ -390,10 +390,13 @@ class Server(Generic[LifespanResultT, RequestT]):
             logger.debug("Registering handler for CallToolRequest")
 
             async def handler(req: types.CallToolRequest):
+                args = req.params.arguments or {}
+                logger.debug("Calling tool: %s, args: %r", req.params.name, args)
                 try:
-                    results = await func(req.params.name, (req.params.arguments or {}))
+                    results = await func(req.params.name, args)
                     return types.ServerResult(types.CallToolResult(content=list(results), isError=False))
                 except Exception as e:
+                    logger.debug("Tool failed: %s, args: %r", req.params.name, args, exc_info=True)
                     return types.ServerResult(
                         types.CallToolResult(
                             content=[types.TextContent(type="text", text=str(e))],
