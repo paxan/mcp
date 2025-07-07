@@ -441,9 +441,10 @@ class Server(Generic[LifespanResultT, RequestT]):
             logger.debug("Registering handler for CallToolRequest")
 
             async def handler(req: types.CallToolRequest):
+                tool_name = req.params.name
+                arguments = req.params.arguments or {}
+                logger.debug("Calling tool: %s, args: %r", tool_name, arguments)
                 try:
-                    tool_name = req.params.name
-                    arguments = req.params.arguments or {}
                     tool = await self._get_cached_tool_definition(tool_name)
 
                     # input validation
@@ -451,6 +452,7 @@ class Server(Generic[LifespanResultT, RequestT]):
                         try:
                             jsonschema.validate(instance=arguments, schema=tool.inputSchema)
                         except jsonschema.ValidationError as e:
+                            logger.debug("Invalid tool input: %s, args: %r", tool_name, arguments, exc_info=True)
                             return self._make_error_result(f"Input validation error: {e.message}")
 
                     # tool call
@@ -483,6 +485,7 @@ class Server(Generic[LifespanResultT, RequestT]):
                             try:
                                 jsonschema.validate(instance=maybe_structured_content, schema=tool.outputSchema)
                             except jsonschema.ValidationError as e:
+                                logger.debug("Invalid tool output: %s, args: %r", tool_name, arguments, exc_info=True)
                                 return self._make_error_result(f"Output validation error: {e.message}")
 
                     # result
@@ -494,6 +497,7 @@ class Server(Generic[LifespanResultT, RequestT]):
                         )
                     )
                 except Exception as e:
+                    logger.debug("Tool failed: %s, args: %r", tool_name, arguments, exc_info=True)
                     return self._make_error_result(str(e))
 
             self.request_handlers[types.CallToolRequest] = handler
